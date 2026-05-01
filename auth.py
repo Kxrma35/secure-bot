@@ -1,13 +1,4 @@
-"""
-auth.py — SecureBot JWT Authentication
-Protects the dashboard with a login page and Bearer token.
 
-Default credentials:
-    username: admin
-    password: securebot123
-
-Change PASSWORD before your demo!
-"""
 
 import time
 import hashlib
@@ -15,7 +6,7 @@ import hmac
 import base64
 import json
 
-# ── Config — CHANGE THESE ─────────────────────────────────────────────────────
+#  Config CHANGE THESE 
 SECRET_KEY = "securebot-super-secret-key-change-me"
 USERNAME   = "admin"
 PASSWORD   = "securebot123"
