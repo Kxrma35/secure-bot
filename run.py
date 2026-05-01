@@ -1,20 +1,11 @@
-"""
-run.py — SecureBot single startup script
-Starts all services in the correct order as background threads.
 
-Run with venv active:
-    source ~/securebot-env/bin/activate
-    python ~/run.py
-
-Press Ctrl-C to stop everything cleanly.
-"""
 
 import threading
 import time
 import sys
 import os
 
-# ── Import all service modules ────────────────────────────────────────────────
+#  Import all service modules
 # Each module's main() will run in its own thread
 
 def run_serial_reader():
