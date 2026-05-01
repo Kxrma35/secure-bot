@@ -1,15 +1,4 @@
-"""
-firmware_check.py — SecureBot Firmware Integrity Checker
-Generates and verifies a SHA-256 hash of the Arduino sketch
-to detect unauthorised modifications.
 
-Usage:
-    # Generate hash (run once after finalising the sketch):
-    python ~/firmware_check.py generate securebot.ino
-
-    # Verify integrity before demo:
-    python ~/firmware_check.py verify securebot.ino
-"""
 
 import hashlib
 import json
