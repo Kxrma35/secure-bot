@@ -1,11 +1,4 @@
-"""
-serial_reader.py — SecureBot Day 2
-Reads JSON from Arduino over serial and publishes to MQTT broker.
 
-Run with venv active:
-    source ~/securebot-env/bin/activate
-    python ~/serial_reader.py
-"""
 
 import serial
 import serial.tools.list_ports
@@ -36,13 +29,13 @@ def on_connect(client, userdata, flags, rc, properties=None):
 
 
 def main():
-    # ── MQTT setup ─────────────────────────────────────────────────────────────
+    # MQTT setup 
     client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
     client.on_connect = on_connect
     client.connect(MQTT_HOST, MQTT_PORT)
     client.loop_start()
 
-    # ── Serial setup ───────────────────────────────────────────────────────────
+    #  Serial setup 
     port = find_port()
     print(f"[serial] Opening {port} at {BAUD_RATE} baud...")
     ser = serial.Serial(port, BAUD_RATE, timeout=5)
