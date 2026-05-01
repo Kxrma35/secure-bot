@@ -1,0 +1,145 @@
+:root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --border: #30363d;
+    --text: #c9d1d9;
+    --muted: #8b949e;
+    --green: #3fb950;
+    --red: #f85149;
+    --yellow: #d29922;
+    --blue: #58a6ff;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', monospace;
+}
+
+header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+header h1 {
+    font-size: 1.2rem;
+}
+
+#dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--red);
+    transition: background .4s;
+}
+
+#dot.live {
+    background: var(--green);
+}
+
+#ts {
+    margin-left: auto;
+    font-size: .8rem;
+    color: var(--muted);
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+    padding: 24px;
+}
+
+.card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+}
+
+.card h2 {
+    font-size: .78rem;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--muted);
+    margin-bottom: 14px;
+}
+
+.metric {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.metric:last-child {
+    border-bottom: none;
+}
+
+.metric .label {
+    color: var(--muted);
+    font-size: .85rem;
+}
+
+.metric .value {
+    font-family: monospace;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.ok {
+    color: var(--green);
+}
+
+.danger {
+    color: var(--red);
+}
+
+canvas {
+    width: 100% !important;
+    height: 130px !important;
+    margin-top: 12px;
+}
+
+.alert-item {
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: .82rem;
+    color: var(--muted);
+}
+
+.alert-item:last-child {
+    border-bottom: none;
+}
+
+.tag {
+    display: inline-block;
+    padding: 1px 7px;
+    border-radius: 4px;
+    font-size: .72rem;
+    margin-right: 6px;
+    background: #f8514920;
+    color: var(--red);
+}
+
+.none {
+    color: var(--muted);
+    font-size: .85rem;
+}
+
+#health {
+    font-size: .78rem;
+    color: var(--muted);
+    padding: 4px 24px 16px;
+}

@@ -1,239 +1,74 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SecureBot Dashboard</title>
-<style>
-  :root {
-    --bg: #0d1117; --surface: #161b22; --border: #30363d;
-    --text: #c9d1d9; --muted: #8b949e;
-    --green: #3fb950; --red: #f85149; --yellow: #d29922; --blue: #58a6ff;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', monospace; }
+  <head>
+    <link rel="stylesheet" href="dashboard.css" />
+    <script src="dashboard.js" defer></script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SecureBot Dashboard</title>
+  </head>
+  <body>
+    <header>
+      <div id="dot"></div>
+      <h1>SecureBot — Live Dashboard</h1>
+      <span id="ts"></span>
+    </header>
 
-  header {
-    background: var(--surface); border-bottom: 1px solid var(--border);
-    padding: 16px 24px; display: flex; align-items: center; gap: 12px;
-  }
-  header h1 { font-size: 1.2rem; }
-  #dot {
-    width: 10px; height: 10px; border-radius: 50%;
-    background: var(--red); transition: background .4s;
-  }
-  #dot.live { background: var(--green); }
-  #ts { margin-left: auto; font-size: .8rem; color: var(--muted); }
+    <div class="grid">
+      <!-- Accelerometer -->
+      <div class="card">
+        <h2>Accelerometer (m/s²)</h2>
+        <div class="metric">
+          <span class="label">X</span><span class="value" id="ax">—</span>
+        </div>
+        <div class="metric">
+          <span class="label">Y</span><span class="value" id="ay">—</span>
+        </div>
+        <div class="metric">
+          <span class="label">Z</span><span class="value" id="az">—</span>
+        </div>
+        <canvas id="accel-chart"></canvas>
+      </div>
 
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 16px; padding: 24px;
-  }
-  .card {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 8px; padding: 20px;
-  }
-  .card h2 {
-    font-size: .78rem; text-transform: uppercase; letter-spacing: .08em;
-    color: var(--muted); margin-bottom: 14px;
-  }
-  .metric {
-    display: flex; justify-content: space-between; align-items: baseline;
-    padding: 7px 0; border-bottom: 1px solid var(--border);
-  }
-  .metric:last-child { border-bottom: none; }
-  .metric .label { color: var(--muted); font-size: .85rem; }
-  .metric .value { font-family: monospace; font-size: 1rem; font-weight: 600; }
-  .ok     { color: var(--green); }
-  .danger { color: var(--red); }
+      <!-- Gyroscope -->
+      <div class="card">
+        <h2>Gyroscope (rad/s)</h2>
+        <div class="metric">
+          <span class="label">X</span><span class="value" id="gx">—</span>
+        </div>
+        <div class="metric">
+          <span class="label">Y</span><span class="value" id="gy">—</span>
+        </div>
+        <div class="metric">
+          <span class="label">Z</span><span class="value" id="gz">—</span>
+        </div>
+        <canvas id="gyro-chart"></canvas>
+      </div>
 
-  canvas { width: 100% !important; height: 130px !important; margin-top: 12px; }
+      <!-- Status -->
+      <div class="card">
+        <h2>Status</h2>
+        <div class="metric">
+          <span class="label">Tamper Flag</span>
+          <span class="value ok" id="tamper">CLEAR</span>
+        </div>
+        <div class="metric">
+          <span class="label">Total Alerts</span>
+          <span class="value" id="alert-count">0</span>
+        </div>
+        <div class="metric">
+          <span class="label">Frames Received</span>
+          <span class="value" id="frames">0</span>
+        </div>
+      </div>
 
-  .alert-item {
-    padding: 8px 0; border-bottom: 1px solid var(--border);
-    font-size: .82rem; color: var(--muted);
-  }
-  .alert-item:last-child { border-bottom: none; }
-  .tag {
-    display: inline-block; padding: 1px 7px; border-radius: 4px;
-    font-size: .72rem; margin-right: 6px;
-    background: #f8514920; color: var(--red);
-  }
-  .none { color: var(--muted); font-size: .85rem; }
-
-  #health {
-    font-size: .78rem; color: var(--muted);
-    padding: 4px 24px 16px;
-  }
-</style>
-</head>
-<body>
-
-<header>
-  <div id="dot"></div>
-  <h1>SecureBot — Live Dashboard</h1>
-  <span id="ts"></span>
-</header>
-
-<div class="grid">
-
-  <!-- Accelerometer -->
-  <div class="card">
-    <h2>Accelerometer (m/s²)</h2>
-    <div class="metric"><span class="label">X</span><span class="value" id="ax">—</span></div>
-    <div class="metric"><span class="label">Y</span><span class="value" id="ay">—</span></div>
-    <div class="metric"><span class="label">Z</span><span class="value" id="az">—</span></div>
-    <canvas id="accel-chart"></canvas>
-  </div>
-
-  <!-- Gyroscope -->
-  <div class="card">
-    <h2>Gyroscope (rad/s)</h2>
-    <div class="metric"><span class="label">X</span><span class="value" id="gx">—</span></div>
-    <div class="metric"><span class="label">Y</span><span class="value" id="gy">—</span></div>
-    <div class="metric"><span class="label">Z</span><span class="value" id="gz">—</span></div>
-    <canvas id="gyro-chart"></canvas>
-  </div>
-
-  <!-- Status -->
-  <div class="card">
-    <h2>Status</h2>
-    <div class="metric">
-      <span class="label">Tamper Flag</span>
-      <span class="value ok" id="tamper">CLEAR</span>
+      <!-- Alerts -->
+      <div class="card" style="grid-column: 1 / -1">
+        <h2>Tamper Alert History</h2>
+        <div id="alert-list"><span class="none">No alerts yet.</span></div>
+      </div>
     </div>
-    <div class="metric">
-      <span class="label">Total Alerts</span>
-      <span class="value" id="alert-count">0</span>
-    </div>
-    <div class="metric">
-      <span class="label">Frames Received</span>
-      <span class="value" id="frames">0</span>
-    </div>
-  </div>
 
-  <!-- Alerts -->
-  <div class="card" style="grid-column: 1 / -1">
-    <h2>Tamper Alert History</h2>
-    <div id="alert-list"><span class="none">No alerts yet.</span></div>
-  </div>
-
-</div>
-
-<div id="health">Connecting to broker…</div>
-
-<script>
-const fmt = v => typeof v === 'number' ? v.toFixed(3) : '—';
-let frames = 0;
-
-// ── Mini rolling chart ────────────────────────────────────────────────────────
-function makeChart(id, colors) {
-  const canvas = document.getElementById(id);
-  const ctx    = canvas.getContext('2d');
-  canvas.width  = canvas.parentElement.clientWidth - 40;
-  canvas.height = 130;
-  const MAX  = 50;
-  const bufs = colors.map(() => []);
-
-  return {
-    push(vals) {
-      vals.forEach((v, i) => {
-        bufs[i].push(v);
-        if (bufs[i].length > MAX) bufs[i].shift();
-      });
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      const W = canvas.width, H = canvas.height;
-      const all = bufs.flat();
-      const lo  = Math.min(...all, -1), hi = Math.max(...all, 1);
-      const toY = v => H - ((v - lo) / (hi - lo)) * H;
-
-      // Zero line
-      ctx.strokeStyle = '#30363d'; ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.moveTo(0, toY(0)); ctx.lineTo(W, toY(0)); ctx.stroke();
-
-      bufs.forEach((pts, i) => {
-        if (pts.length < 2) return;
-        ctx.strokeStyle = colors[i]; ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        pts.forEach((v, x) => {
-          const px = (x / (MAX - 1)) * W;
-          x === 0 ? ctx.moveTo(px, toY(v)) : ctx.lineTo(px, toY(v));
-        });
-        ctx.stroke();
-      });
-    }
-  };
-}
-
-const accelChart = makeChart('accel-chart', ['#f85149','#3fb950','#58a6ff']);
-const gyroChart  = makeChart('gyro-chart',  ['#f85149','#3fb950','#58a6ff']);
-
-// ── Fetch telemetry ───────────────────────────────────────────────────────────
-async function fetchTelemetry() {
-  try {
-    const r = await fetch('/api/telemetry');
-    const d = await r.json();
-    if (!d.ts) return;
-
-    document.getElementById('dot').classList.add('live');
-    document.getElementById('ts').textContent =
-      new Date(d.ts * 1000).toLocaleTimeString();
-
-    document.getElementById('ax').textContent = fmt(d.ax);
-    document.getElementById('ay').textContent = fmt(d.ay);
-    document.getElementById('az').textContent = fmt(d.az);
-    document.getElementById('gx').textContent = fmt(d.gx);
-    document.getElementById('gy').textContent = fmt(d.gy);
-    document.getElementById('gz').textContent = fmt(d.gz);
-
-    const tf = document.getElementById('tamper');
-    if (d.tamper) {
-      tf.textContent = '⚠ TAMPER'; tf.className = 'value danger';
-    } else {
-      tf.textContent = 'CLEAR'; tf.className = 'value ok';
-    }
-
-    accelChart.push([d.ax ?? 0, d.ay ?? 0, d.az ?? 0]);
-    gyroChart.push([d.gx ?? 0, d.gy ?? 0, d.gz ?? 0]);
-    frames++;
-    document.getElementById('frames').textContent = frames;
-
-  } catch (_) {
-    document.getElementById('dot').classList.remove('live');
-  }
-}
-
-// ── Fetch alerts ──────────────────────────────────────────────────────────────
-async function fetchAlerts() {
-  const r = await fetch('/api/alerts');
-  const a = await r.json();
-  document.getElementById('alert-count').textContent = a.length;
-
-  const el = document.getElementById('alert-list');
-  if (!a.length) {
-    el.innerHTML = '<span class="none">No alerts yet.</span>';
-    return;
-  }
-  el.innerHTML = a.map(x => {
-    const t = new Date(x.ts * 1000).toLocaleTimeString();
-    return `<div class="alert-item">
-      <span class="tag">TAMPER</span>${t}
-      &nbsp; ax:${fmt(x.ax)} &nbsp; ay:${fmt(x.ay)} &nbsp; az:${fmt(x.az)}
-    </div>`;
-  }).join('');
-}
-
-// ── Poll ──────────────────────────────────────────────────────────────────────
-setInterval(fetchTelemetry, 1000);
-setInterval(fetchAlerts, 2000);
-setInterval(() => {
-  document.getElementById('health').textContent =
-    `Broker: Mosquitto on localhost:1883  ·  Frames received: ${frames}`;
-}, 3000);
-
-fetchTelemetry();
-fetchAlerts();
-</script>
-</body>
+    <div id="health">Connecting to broker…</div>
+  </body>
 </html>
