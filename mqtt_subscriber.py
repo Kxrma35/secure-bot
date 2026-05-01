@@ -1,16 +1,4 @@
-"""
-mqtt_subscriber.py — SecureBot Day 2
-Subscribes to securebot/telemetry and logs all data to SQLite.
 
-Run in a separate terminal with venv active:
-    source ~/securebot-env/bin/activate
-    python ~/mqtt_subscriber.py
-
-Database file: ~/securebot.db
-Tables:
-  - telemetry  : all sensor readings
-  - alerts     : rows where tamper=1
-"""
 
 import json
 import time
@@ -26,8 +14,7 @@ MQTT_TOPIC   = "securebot/telemetry"
 DB_PATH = "sqlite:////home/karma/securebot.db"
 
 
-# ── Database models ────────────────────────────────────────────────────────────
-
+#  Database models 
 class Base(DeclarativeBase):
     pass
 
@@ -58,7 +45,7 @@ class Alert(Base):
     az       = Column(Float)
 
 
-# ── Database setup ─────────────────────────────────────────────────────────────
+#  Database setup
 
 engine = create_engine(DB_PATH, echo=False)
 Base.metadata.create_all(engine)
@@ -119,8 +106,7 @@ def on_message(client, userdata, msg):
         print(f"[mqtt] Error processing message: {e}")
 
 
-# ── Main ───────────────────────────────────────────────────────────────────────
-
+#  Main 
 def main():
     client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
     client.on_connect = on_connect
