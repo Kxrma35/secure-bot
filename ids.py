@@ -1,16 +1,4 @@
-"""
-ids.py — SecureBot Intrusion Detection System
-Monitors the MQTT broker for suspicious activity:
-  - Abnormal message frequency (flood/replay attack)
-  - Duplicate payloads (replay attack)
-  - Tamper events from the hardware
 
-Logs all security events to SQLite security_log table.
-
-Run with venv active in its own terminal:
-    source ~/securebot-env/bin/activate
-    python ~/ids.py
-"""
 
 import json
 import time
@@ -49,7 +37,7 @@ engine = create_engine(DB_PATH, echo=False)
 Base.metadata.create_all(engine)
 print("[ids] security_log table ready")
 
-# ── State ──────────────────────────────────────────────────────────────────────
+#  State 
 msg_times    = deque()          # timestamps of recent messages
 recent_hashes= {}               # hash -> timestamp, for replay detection
 event_count  = 0
@@ -75,7 +63,7 @@ def on_message(client, userdata, msg):
     now     = time.time()
     payload = msg.payload.decode()
 
-    # ── Flood detection ────────────────────────────────────────────────────────
+    #  Flood detection 
     msg_times.append(now)
     # Remove timestamps older than 1 second
     while msg_times and msg_times[0] < now - 1:
@@ -84,7 +72,7 @@ def on_message(client, userdata, msg):
     if len(msg_times) > MAX_MSG_PER_SEC:
         log_event("flood", f"{len(msg_times)} messages in last second")
 
-    # ── Replay detection ───────────────────────────────────────────────────────
+    #  Replay detection 
     h = hashlib.sha256(payload.encode()).hexdigest()
     if h in recent_hashes:
         age = round(now - recent_hashes[h], 2)
@@ -96,7 +84,7 @@ def on_message(client, userdata, msg):
     for k in expired:
         del recent_hashes[k]
 
-    # ── Tamper detection ───────────────────────────────────────────────────────
+    #  Tamper detection
     try:
         data = json.loads(payload)
         if data.get("tamper"):
