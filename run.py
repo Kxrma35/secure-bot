@@ -1,21 +1,7 @@
-"""
-run.py — SecureBot single startup script
-Starts all services in the correct order as background threads.
-
-Run with venv active:
-    source ~/securebot-env/bin/activate
-    python ~/run.py
-
-Press Ctrl-C to stop everything cleanly.
-"""
-
 import threading
 import time
 import sys
 import os
-
-# ── Import all service modules ────────────────────────────────────────────────
-# Each module's main() will run in its own thread
 
 def run_serial_reader():
     import serial_reader
@@ -31,31 +17,37 @@ def run_ids():
 
 def run_dashboard():
     import dashboard
+    dashboard.start_mqtt()
     dashboard.app.run(host="0.0.0.0", port=5000, debug=False, use_reloader=False)
-
 
 def main():
     import socket
-    ip = socket.gethostbyname(socket.gethostname())
+    try:
+        ip = socket.gethostbyname(socket.gethostname())
+    except:
+        ip = "localhost"
 
     print("=" * 50)
     print(" SecureBot — Starting all services")
     print("=" * 50)
 
-    services = [
-        ("MQTT Subscriber",  run_mqtt_subscriber),
-        ("IDS",              run_ids),
-        ("Serial Reader",    run_serial_reader),
-        ("Flask Dashboard",  run_dashboard),
+    # Kill anything holding the serial port first
+    os.system("sudo fuser -k /dev/ttyACM0 2>/dev/null")
+    time.sleep(2)
+
+    # Start in correct order with delays
+    steps = [
+        ("MQTT Subscriber", run_mqtt_subscriber, 3),
+        ("IDS",             run_ids,             2),
+        ("Serial Reader",   run_serial_reader,   5),
+        ("Flask Dashboard", run_dashboard,        2),
     ]
 
-    threads = []
-    for name, target in services:
+    for name, target, delay in steps:
         t = threading.Thread(target=target, name=name, daemon=True)
         t.start()
-        threads.append(t)
         print(f"[run] ✓ {name} started")
-        time.sleep(1)   # stagger startup slightly
+        time.sleep(delay)
 
     print()
     print(f"[run] All services running.")
@@ -66,9 +58,9 @@ def main():
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
-        print("\n[run] Shutting down SecureBot...")
+        print("\n[run] Shutting down...")
+        os.system("sudo fuser -k /dev/ttyACM0 2>/dev/null")
         sys.exit(0)
-
 
 if __name__ == "__main__":
     main()

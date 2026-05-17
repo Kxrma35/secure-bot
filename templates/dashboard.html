@@ -225,7 +225,7 @@ async function fetchAlerts() {
 }
 
 // ── Poll ──────────────────────────────────────────────────────────────────────
-setInterval(fetchTelemetry, 1000);
+setInterval(fetchTelemetry, 300);
 setInterval(fetchAlerts, 2000);
 setInterval(() => {
   document.getElementById('health').textContent =
