@@ -40,7 +40,7 @@ def main():
         while True:
             raw = ser.readline()
             if not raw:
-                print("[serial] Timeout — is the Arduino sketch running?")
+                print("[serial] Timeout - is the Arduino sketch running?")
                 break
             line = raw.decode("utf-8", errors="replace").strip()
             if not line:
@@ -50,7 +50,7 @@ def main():
                 print(data)
                 lines += 1
                 if lines == 3:
-                    print("\n✓ Serial pipeline working!\n")
+                    print("\nSerial pipeline working.\n")
             except json.JSONDecodeError:
                 print(f"[arduino] {line}")
     except KeyboardInterrupt:

@@ -1,14 +1,9 @@
-"""
-firmware_check.py — SecureBot Firmware Integrity Checker
-Generates and verifies a SHA-256 hash of the Arduino sketch
-to detect unauthorised modifications.
+"""Generates and verifies SHA-256 hashes of the Arduino sketch to
+detect unauthorised modification.
 
 Usage:
-    # Generate hash (run once after finalising the sketch):
-    python ~/firmware_check.py generate securebot.ino
-
-    # Verify integrity before demo:
-    python ~/firmware_check.py verify securebot.ino
+    python firmware_check.py generate securebot.ino
+    python firmware_check.py verify securebot.ino
 """
 
 import hashlib
@@ -21,7 +16,6 @@ HASH_STORE = os.path.expanduser("~/firmware_hashes.json")
 
 
 def hash_file(path: str) -> str:
-    """Return SHA-256 hex digest of a file."""
     sha = hashlib.sha256()
     with open(path, "rb") as f:
         for chunk in iter(lambda: f.read(4096), b""):
@@ -54,7 +48,7 @@ def generate(path: str):
         "path":      os.path.abspath(path),
     }
     save_store(store)
-    print(f"[firmware] Hash generated and stored:")
+    print("[firmware] Hash generated and stored:")
     print(f"           File : {path}")
     print(f"           SHA256: {digest}")
     print(f"           Stored in: {HASH_STORE}")
@@ -77,10 +71,10 @@ def verify(path: str):
     actual   = hash_file(path)
 
     if actual == expected:
-        print(f"[firmware] ✓ INTEGRITY OK — {name}")
+        print(f"[firmware] INTEGRITY OK - {name}")
         print(f"           SHA256: {actual}")
     else:
-        print(f"[firmware] ✗ INTEGRITY FAIL — {name} has been MODIFIED")
+        print(f"[firmware] INTEGRITY FAIL - {name} has been MODIFIED")
         print(f"           Expected: {expected}")
         print(f"           Got:      {actual}")
         sys.exit(1)

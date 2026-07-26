@@ -17,7 +17,7 @@ def on_connect(client, userdata, flags, rc, properties=None):
     if rc == 0:
         print("[mqtt] Connected to Mosquitto broker")
     else:
-        print(f"[mqtt] Connection failed — code {rc}")
+        print(f"[mqtt] Connection failed - code {rc}")
 
 def main():
     client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
@@ -48,7 +48,7 @@ def main():
                 payload = json.dumps(data)
                 client.publish(MQTT_TOPIC, payload)
                 frames += 1
-                status = "⚠ TAMPER" if data.get("tamper") else "OK"
+                status = "TAMPER" if data.get("tamper") else "OK"
                 print(f"[{frames:04d}] {status} | ax={data['ax']:6.2f} ay={data['ay']:6.2f} az={data['az']:6.2f}")
             except json.JSONDecodeError:
                 print(f"[serial] Non-JSON line: {line}")
