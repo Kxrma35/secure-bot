@@ -22,10 +22,7 @@ from sqlalchemy import create_engine, Column, Integer, Float, String, DateTime
 from sqlalchemy.orm import DeclarativeBase, Session
 from datetime import datetime
 
-MQTT_HOST        = "localhost"
-MQTT_PORT        = 1883
-MQTT_TOPIC       = "securebot/telemetry"
-DB_PATH          = "sqlite:////home/karma/securebot.db"
+from config import MQTT_HOST, MQTT_PORT, MQTT_TOPIC, DB_PATH
 
 # Thresholds
 MAX_MSG_PER_SEC  = 10    # more than this = flood attack

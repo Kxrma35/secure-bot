@@ -20,10 +20,7 @@ import paho.mqtt.client as mqtt
 from sqlalchemy import create_engine, Column, Integer, Float, String, DateTime, Boolean
 from sqlalchemy.orm import DeclarativeBase, Session
 
-MQTT_HOST    = "localhost"
-MQTT_PORT    = 1883
-MQTT_TOPIC   = "securebot/telemetry"
-DB_PATH = "sqlite:////home/karma/securebot.db"
+from config import MQTT_HOST, MQTT_PORT, MQTT_TOPIC, DB_PATH
 
 
 # ── Database models ────────────────────────────────────────────────────────────

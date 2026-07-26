@@ -4,11 +4,7 @@ import json
 import time
 import paho.mqtt.client as mqtt
 
-SERIAL_PORT = "/dev/ttyACM0"
-BAUD_RATE   = 115200
-MQTT_HOST   = "localhost"
-MQTT_PORT   = 1883
-MQTT_TOPIC  = "securebot/telemetry"
+from config import SERIAL_PORT, BAUD_RATE, MQTT_HOST, MQTT_PORT, MQTT_TOPIC
 
 def find_port():
     available = [p.device for p in serial.tools.list_ports.comports()]
