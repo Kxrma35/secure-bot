@@ -111,6 +111,7 @@ python-dotenv
 
 ```
 secure-bot/
+├── securebot.ino         # Arduino firmware — sensor reads, tamper detection
 ├── serial_reader.py      # Reads Arduino serial data, publishes to MQTT
 ├── mqtt_subscriber.py    # Subscribes to MQTT, logs all readings to SQLite
 ├── dashboard.py          # Flask web server — live dashboard + REST API
