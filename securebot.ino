@@ -20,11 +20,22 @@ const unsigned long TAMPER_HOLD_MS = 1600;
 // consecutive failed reads the bus and sensor are reinitialised.
 const int MAX_FAILED_READS = 5;
 
+// The Adafruit library reports success even when the bus is dead, so a
+// lockup shows up as bit-identical readings. Real sensor noise never
+// holds all six axes constant this long.
+const int MAX_IDENTICAL_READS = 10;
+
+// Without a timeout, Wire blocks forever on a hung bus and the whole
+// sketch freezes (microseconds).
+const uint32_t WIRE_TIMEOUT_US = 3000;
+
 Adafruit_MPU6050 mpu;
 unsigned long lastSample = 0;
 unsigned long lastTamperTrigger = 0;
 bool tamper = false;
 int failedReads = 0;
+int identicalReads = 0;
+float lastReading[6] = {0, 0, 0, 0, 0, 0};
 
 bool initSensor() {
   if (!mpu.begin()) {
@@ -36,14 +47,41 @@ bool initSensor() {
   return true;
 }
 
+void enableWireTimeout() {
+#if defined(WIRE_HAS_TIMEOUT)
+  Wire.setWireTimeout(WIRE_TIMEOUT_US, true);
+#endif
+}
+
 void resetI2CBus() {
   Serial.println(F("{\"status\":\"i2c_reset\"}"));
   Wire.end();
-  delay(50);
+  // A locked-up slave holds SDA low mid-transfer; pulsing SCL lets it
+  // clock out the rest of its byte and release the bus, then a manual
+  // STOP condition returns it to idle. Wire.begin() alone cannot do this.
+  pinMode(SDA, INPUT_PULLUP);
+  pinMode(SCL, INPUT_PULLUP);
+  delay(5);
+  for (int i = 0; i < 9 && digitalRead(SDA) == LOW; i++) {
+    pinMode(SCL, OUTPUT);
+    digitalWrite(SCL, LOW);
+    delayMicroseconds(10);
+    pinMode(SCL, INPUT_PULLUP);
+    delayMicroseconds(10);
+  }
+  pinMode(SDA, OUTPUT);
+  digitalWrite(SDA, LOW);
+  delayMicroseconds(10);
+  pinMode(SCL, INPUT_PULLUP);
+  delayMicroseconds(10);
+  pinMode(SDA, INPUT_PULLUP);
+  delayMicroseconds(10);
   Wire.begin();
+  enableWireTimeout();
   delay(50);
   initSensor();
   failedReads = 0;
+  identicalReads = 0;
 }
 
 void setup() {
@@ -57,6 +95,7 @@ void setup() {
       delay(500);
     }
   }
+  enableWireTimeout();
   Serial.println(F("{\"status\":\"ready\"}"));
 }
 
@@ -68,7 +107,14 @@ void loop() {
   lastSample = now;
 
   sensors_event_t a, g, temp;
-  if (!mpu.getEvent(&a, &g, &temp)) {
+  bool readFailed = !mpu.getEvent(&a, &g, &temp);
+#if defined(WIRE_HAS_TIMEOUT)
+  if (Wire.getWireTimeoutFlag()) {
+    Wire.clearWireTimeoutFlag();
+    readFailed = true;
+  }
+#endif
+  if (readFailed) {
     failedReads++;
     if (failedReads >= MAX_FAILED_READS) {
       resetI2CBus();
@@ -76,6 +122,27 @@ void loop() {
     return;
   }
   failedReads = 0;
+
+  float reading[6] = {
+    a.acceleration.x, a.acceleration.y, a.acceleration.z,
+    g.gyro.x, g.gyro.y, g.gyro.z
+  };
+  bool identical = true;
+  for (int i = 0; i < 6; i++) {
+    if (reading[i] != lastReading[i]) {
+      identical = false;
+    }
+    lastReading[i] = reading[i];
+  }
+  if (identical) {
+    identicalReads++;
+    if (identicalReads >= MAX_IDENTICAL_READS) {
+      resetI2CBus();
+      return;
+    }
+  } else {
+    identicalReads = 0;
+  }
 
   float ax = a.acceleration.x;
   float ay = a.acceleration.y;
