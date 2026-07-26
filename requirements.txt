@@ -1,0 +1,5 @@
+flask
+paho-mqtt
+pyserial
+sqlalchemy
+python-dotenv
