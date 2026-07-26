@@ -1,16 +1,5 @@
-"""
-mqtt_subscriber.py — SecureBot Day 2
-Subscribes to securebot/telemetry and logs all data to SQLite.
-
-Run in a separate terminal with venv active:
-    source ~/securebot-env/bin/activate
-    python ~/mqtt_subscriber.py
-
-Database file: ~/securebot.db
-Tables:
-  - telemetry  : all sensor readings
-  - alerts     : rows where tamper=1
-"""
+"""Subscribes to the telemetry topic and logs readings to SQLite,
+with tamper readings duplicated into the alerts table."""
 
 import json
 import time
@@ -22,8 +11,6 @@ from sqlalchemy.orm import DeclarativeBase, Session
 
 from config import MQTT_HOST, MQTT_PORT, MQTT_TOPIC, DB_PATH
 
-
-# ── Database models ────────────────────────────────────────────────────────────
 
 class Base(DeclarativeBase):
     pass
@@ -55,14 +42,9 @@ class Alert(Base):
     az       = Column(Float)
 
 
-# ── Database setup ─────────────────────────────────────────────────────────────
-
 engine = create_engine(DB_PATH, echo=False)
 Base.metadata.create_all(engine)
 print(f"[db] Database ready at {DB_PATH}")
-
-
-# ── MQTT callbacks ─────────────────────────────────────────────────────────────
 
 readings = 0
 tamper_count = 0
@@ -72,7 +54,7 @@ def on_connect(client, userdata, flags, rc, properties=None):
         client.subscribe(MQTT_TOPIC)
         print(f"[mqtt] Connected. Subscribed to {MQTT_TOPIC}\n")
     else:
-        print(f"[mqtt] Connection failed — code {rc}")
+        print(f"[mqtt] Connection failed - code {rc}")
 
 
 def on_message(client, userdata, msg):
@@ -94,7 +76,6 @@ def on_message(client, userdata, msg):
         with Session(engine) as session:
             session.add(reading)
 
-            # Also log to alerts table if tamper detected
             if reading.tamper:
                 alert = Alert(
                     ts = reading.ts,
@@ -104,7 +85,7 @@ def on_message(client, userdata, msg):
                 )
                 session.add(alert)
                 tamper_count += 1
-                print(f"[alert] ⚠ TAMPER #{tamper_count} logged to DB")
+                print(f"[alert] TAMPER #{tamper_count} logged to DB")
 
             session.commit()
 
@@ -115,8 +96,6 @@ def on_message(client, userdata, msg):
     except Exception as e:
         print(f"[mqtt] Error processing message: {e}")
 
-
-# ── Main ───────────────────────────────────────────────────────────────────────
 
 def main():
     client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)

@@ -39,7 +39,7 @@ def main():
     os.system("sudo fuser -k /dev/ttyACM0 2>/dev/null")
     time.sleep(2)
 
-    # Start in correct order with delays
+    # Order matters: subscribers must be listening before the reader publishes
     steps = [
         ("MQTT Subscriber", run_mqtt_subscriber, 3),
         ("IDS",             run_ids,             2),
@@ -50,11 +50,11 @@ def main():
     for name, target, delay in steps:
         t = threading.Thread(target=target, name=name, daemon=True)
         t.start()
-        print(f"[run] ✓ {name} started")
+        print(f"[run] {name} started")
         time.sleep(delay)
 
     print()
-    print(f"[run] All services running.")
+    print("[run] All services running.")
     print(f"[run] Dashboard: http://{ip}:5000")
     print(f"[run] Press Ctrl-C to stop.\n")
 
