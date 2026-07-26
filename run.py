@@ -17,14 +17,18 @@ def run_ids():
 
 def run_dashboard():
     import dashboard
+    from config import DASHBOARD_HOST, DASHBOARD_PORT
     dashboard.start_mqtt()
-    dashboard.app.run(host="0.0.0.0", port=5000, debug=False, use_reloader=False)
+    dashboard.app.run(host=DASHBOARD_HOST, port=DASHBOARD_PORT,
+                      debug=False, use_reloader=False)
 
 def main():
     import socket
+    from config import require_auth_config
+    require_auth_config()
     try:
         ip = socket.gethostbyname(socket.gethostname())
-    except:
+    except OSError:
         ip = "localhost"
 
     print("=" * 50)

@@ -66,9 +66,41 @@
     font-size: .78rem; color: var(--muted);
     padding: 4px 24px 16px;
   }
+
+  #login-overlay {
+    position: fixed; inset: 0; background: var(--bg);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 10;
+  }
+  #login-overlay.hidden { display: none; }
+  #login-box {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 28px; width: 300px;
+  }
+  #login-box h2 { font-size: 1rem; margin-bottom: 16px; }
+  #login-box input {
+    width: 100%; margin-bottom: 10px; padding: 8px 10px;
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 6px; color: var(--text); font-size: .9rem;
+  }
+  #login-box button {
+    width: 100%; padding: 9px; border: none; border-radius: 6px;
+    background: var(--blue); color: #fff; font-size: .9rem; cursor: pointer;
+  }
+  #login-error { color: var(--red); font-size: .8rem; min-height: 1.2em; margin-bottom: 8px; }
 </style>
 </head>
 <body>
+
+<div id="login-overlay">
+  <form id="login-box">
+    <h2>SecureBot Login</h2>
+    <div id="login-error"></div>
+    <input type="text" id="login-user" placeholder="Username" autocomplete="username" required>
+    <input type="password" id="login-pass" placeholder="Password" autocomplete="current-password" required>
+    <button type="submit">Sign in</button>
+  </form>
+</div>
 
 <header>
   <div id="dot"></div>
@@ -126,8 +158,48 @@
 <script>
 const fmt = v => typeof v === 'number' ? v.toFixed(3) : '—';
 let frames = 0;
+let token = sessionStorage.getItem('securebot-token') || '';
 
-// ── Mini rolling chart ────────────────────────────────────────────────────────
+function showLogin() {
+  token = '';
+  sessionStorage.removeItem('securebot-token');
+  document.getElementById('login-overlay').classList.remove('hidden');
+}
+
+async function authFetch(url) {
+  const r = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
+  if (r.status === 401) {
+    showLogin();
+    throw new Error('unauthorized');
+  }
+  return r.json();
+}
+
+document.getElementById('login-box').addEventListener('submit', async e => {
+  e.preventDefault();
+  const err = document.getElementById('login-error');
+  err.textContent = '';
+  const r = await fetch('/api/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      username: document.getElementById('login-user').value,
+      password: document.getElementById('login-pass').value,
+    }),
+  });
+  if (!r.ok) {
+    err.textContent = 'Invalid username or password.';
+    return;
+  }
+  token = (await r.json()).token;
+  sessionStorage.setItem('securebot-token', token);
+  document.getElementById('login-overlay').classList.add('hidden');
+  fetchTelemetry();
+  fetchAlerts();
+});
+
+if (token) document.getElementById('login-overlay').classList.add('hidden');
+
 function makeChart(id, colors) {
   const canvas = document.getElementById(id);
   const ctx    = canvas.getContext('2d');
@@ -169,11 +241,10 @@ function makeChart(id, colors) {
 const accelChart = makeChart('accel-chart', ['#f85149','#3fb950','#58a6ff']);
 const gyroChart  = makeChart('gyro-chart',  ['#f85149','#3fb950','#58a6ff']);
 
-// ── Fetch telemetry ───────────────────────────────────────────────────────────
 async function fetchTelemetry() {
+  if (!token) return;
   try {
-    const r = await fetch('/api/telemetry');
-    const d = await r.json();
+    const d = await authFetch('/api/telemetry');
     if (!d.ts) return;
 
     document.getElementById('dot').classList.add('live');
@@ -189,7 +260,7 @@ async function fetchTelemetry() {
 
     const tf = document.getElementById('tamper');
     if (d.tamper) {
-      tf.textContent = '⚠ TAMPER'; tf.className = 'value danger';
+      tf.textContent = 'TAMPER'; tf.className = 'value danger';
     } else {
       tf.textContent = 'CLEAR'; tf.className = 'value ok';
     }
@@ -204,10 +275,14 @@ async function fetchTelemetry() {
   }
 }
 
-// ── Fetch alerts ──────────────────────────────────────────────────────────────
 async function fetchAlerts() {
-  const r = await fetch('/api/alerts');
-  const a = await r.json();
+  if (!token) return;
+  let a;
+  try {
+    a = await authFetch('/api/alerts');
+  } catch (_) {
+    return;
+  }
   document.getElementById('alert-count').textContent = a.length;
 
   const el = document.getElementById('alert-list');
@@ -224,7 +299,6 @@ async function fetchAlerts() {
   }).join('');
 }
 
-// ── Poll ──────────────────────────────────────────────────────────────────────
 setInterval(fetchTelemetry, 300);
 setInterval(fetchAlerts, 2000);
 setInterval(() => {
