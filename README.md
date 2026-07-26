@@ -76,7 +76,7 @@ A real-time IoT security pipeline built on Arduino Uno R3 and Raspberry Pi 5. Se
 
 | MPU-6050 Pin | Arduino Pin | Wire Colour | Notes |
 |---|---|---|---|
-| VCC | 3.3V | Red | ⚠ **NOT 5V** — will destroy the sensor |
+| VCC | 3.3V | Red | **NOT 5V** — will destroy the sensor |
 | GND | GND | Black | Any GND pin |
 | SDA | A4 | Blue | I2C data line |
 | SCL | A5 | Yellow | I2C clock line |
@@ -90,22 +90,19 @@ A real-time IoT security pipeline built on Arduino Uno R3 and Raspberry Pi 5. Se
 | Layer | Language | Key Libraries |
 |---|---|---|
 | Arduino firmware | C++ | Adafruit MPU6050, Wire.h, math.h |
-| Raspberry Pi services | Python 3.13 | Flask, paho-mqtt, pyserial, SQLAlchemy, cryptography |
+| Raspberry Pi services | Python 3.13 | Flask, paho-mqtt, pyserial, SQLAlchemy, python-dotenv |
 | Web dashboard | HTML / CSS / JavaScript | Canvas API, Fetch API (no external frameworks) |
 
 ### Python Dependencies
 
+See `requirements.txt`:
+
 ```
-fastapi
-uvicorn[standard]
+flask
 paho-mqtt
 pyserial
-pyserial-asyncio
 sqlalchemy
-python-jose[cryptography]
-cryptography
-pydantic
-flask
+python-dotenv
 ```
 
 ---
@@ -118,10 +115,13 @@ secure-bot/
 ├── mqtt_subscriber.py    # Subscribes to MQTT, logs all readings to SQLite
 ├── dashboard.py          # Flask web server — live dashboard + REST API
 ├── ids.py                # Intrusion detection (flood + replay attacks)
-├── auth.py               # JWT token generation and verification
+├── auth.py               # Token generation and verification
+├── config.py             # Central configuration from environment variables
 ├── firmware_check.py     # SHA-256 firmware integrity checker
 ├── run.py                # Single startup script for all services
 ├── test_serial.py        # Serial connection test utility
+├── requirements.txt      # Python dependencies
+├── .env.example          # Template for required environment variables
 ├── templates/
 │   └── dashboard.html    # Live dashboard frontend
 └── README.md
@@ -152,7 +152,7 @@ sudo systemctl start mosquitto
 # Create virtual environment
 python3 -m venv ~/securebot-env
 source ~/securebot-env/bin/activate
-pip install flask paho-mqtt pyserial pyserial-asyncio sqlalchemy cryptography python-jose
+pip install -r requirements.txt
 ```
 
 ### 2. Flash the Arduino
@@ -173,14 +173,25 @@ cp ~/securebot-files/*.py ~/
 cp -r ~/securebot-files/templates ~/
 ```
 
-### 4. Start everything
+### 4. Configure secrets
+
+```bash
+cp ~/securebot-files/.env.example ~/.env
+# Edit ~/.env and set:
+#   SECUREBOT_SECRET_KEY    — generate with: python -c "import secrets; print(secrets.token_hex(32))"
+#   SECUREBOT_ADMIN_PASSWORD — the dashboard login password
+```
+
+The services refuse to start until both values are set. Never commit `.env`.
+
+### 5. Start everything
 
 ```bash
 source ~/securebot-env/bin/activate
 python ~/run.py
 ```
 
-### 5. Open the dashboard
+### 6. Open the dashboard
 
 Find your Pi's IP address:
 ```bash
@@ -191,6 +202,8 @@ Then open a browser on any device on the same network:
 ```
 http://<pi-ip-address>:5000
 ```
+
+Sign in with `SECUREBOT_ADMIN_USER` and `SECUREBOT_ADMIN_PASSWORD` from your `.env`.
 
 ---
 
@@ -223,7 +236,7 @@ This generates a public URL like `https://abc123.ngrok-free.app` accessible from
 | Flood detection | `ids.py` | Flags MQTT message rates above 10/second as a flood attack |
 | Replay detection | `ids.py` | SHA-256 hashes each payload; duplicates within 5 seconds are flagged |
 | Firmware integrity | `firmware_check.py` | Generates and verifies SHA-256 hash of the Arduino sketch file |
-| JWT authentication | `auth.py` | HMAC-SHA256 signed tokens for protecting dashboard API endpoints |
+| Token authentication | `auth.py` | Login-protected dashboard; HMAC-SHA256 signed tokens required on all API endpoints. Credentials come from environment variables, never the repository |
 | Audit logging | `mqtt_subscriber.py` | All telemetry, tamper alerts, and security events logged to SQLite with timestamps |
 
 ### Firmware Integrity Check
@@ -257,12 +270,18 @@ SELECT COUNT(*) FROM telemetry;
 
 ##  API Endpoints
 
-| Endpoint | Method | Description |
-|---|---|---|
-| `/` | GET | Live dashboard HTML |
-| `/api/telemetry` | GET | Latest single sensor reading as JSON |
-| `/api/history` | GET | Last 50 readings as JSON array |
-| `/api/alerts` | GET | Last 20 tamper alerts as JSON array |
+| Endpoint | Method | Auth | Description |
+|---|---|---|---|
+| `/` | GET | None | Live dashboard HTML (login form) |
+| `/api/login` | POST | Credentials | Exchange `{"username", "password"}` for a token |
+| `/api/telemetry` | GET | Bearer token | Latest single sensor reading as JSON |
+| `/api/history` | GET | Bearer token | Last 50 readings as JSON array |
+| `/api/alerts` | GET | Bearer token | Last 20 tamper alerts as JSON array |
+
+Authenticated requests send the token in a header:
+```
+Authorization: Bearer <token from /api/login>
+```
 
 ### Example Response — `/api/telemetry`
 
@@ -304,8 +323,9 @@ SELECT COUNT(*) FROM telemetry;
 | I2C lockup after a few minutes | The sketch auto-resets the I2C bus after 5 failed reads |
 | Serial port not found | Run `ls /dev/ttyACM*` — use `/dev/ttyACM0` |
 | Dashboard shows Frames: 0 | Check Mosquitto is running: `sudo systemctl status mosquitto` |
-| Port 5000 already in use | Run `sudo pkill -f python` then restart |
-| Push rejected on GitHub | Run `git push origin main --force` |
+| Port 5000 already in use | Find the process with `sudo lsof -i :5000` and stop it |
+| Push rejected on GitHub | Run `git pull --rebase origin main`, resolve any conflicts, then push again |
+| Services exit at startup | Set `SECUREBOT_SECRET_KEY` and `SECUREBOT_ADMIN_PASSWORD` in `~/.env` |
 
 ---
 
