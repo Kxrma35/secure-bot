@@ -1,0 +1,22 @@
+# Dependencies for visualizer.py (the desktop 3D attitude view).
+#
+# Kept separate from requirements.txt: vpython drags in the entire Jupyter
+# stack (~119 packages installed in total) that the Pi-side services never
+# need, so don't merge these into the service install.
+#
+#   pip install -r requirements-visualizer.txt
+#
+# Verified on Python 3.11 and 3.13 with vpython 7.6.5, pyserial 3.5,
+# numpy 2.4.6.  Python 3.11 is the smoother path -- see the note below.
+
+vpython>=7.6.5
+pyserial>=3.5
+numpy>=1.21
+
+# vpython 7.6.5 still does "from pkg_resources import ..." at import time.
+# Python 3.12+ venvs no longer ship setuptools, and setuptools 81+ dropped
+# pkg_resources altogether, so on 3.12+ the install succeeds but
+# "import vpython" dies with:
+#     ModuleNotFoundError: No module named 'pkg_resources'
+# Pinning below 81 restores it (with a deprecation warning).
+setuptools<81; python_version >= "3.12"
