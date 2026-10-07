@@ -2,308 +2,155 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SecureBot Dashboard</title>
-<style>
-  :root {
-    --bg: #0d1117; --surface: #161b22; --border: #30363d;
-    --text: #c9d1d9; --muted: #8b949e;
-    --green: #3fb950; --red: #f85149; --yellow: #d29922; --blue: #58a6ff;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', monospace; }
-
-  header {
-    background: var(--surface); border-bottom: 1px solid var(--border);
-    padding: 16px 24px; display: flex; align-items: center; gap: 12px;
-  }
-  header h1 { font-size: 1.2rem; }
-  #dot {
-    width: 10px; height: 10px; border-radius: 50%;
-    background: var(--red); transition: background .4s;
-  }
-  #dot.live { background: var(--green); }
-  #ts { margin-left: auto; font-size: .8rem; color: var(--muted); }
-
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 16px; padding: 24px;
-  }
-  .card {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 8px; padding: 20px;
-  }
-  .card h2 {
-    font-size: .78rem; text-transform: uppercase; letter-spacing: .08em;
-    color: var(--muted); margin-bottom: 14px;
-  }
-  .metric {
-    display: flex; justify-content: space-between; align-items: baseline;
-    padding: 7px 0; border-bottom: 1px solid var(--border);
-  }
-  .metric:last-child { border-bottom: none; }
-  .metric .label { color: var(--muted); font-size: .85rem; }
-  .metric .value { font-family: monospace; font-size: 1rem; font-weight: 600; }
-  .ok     { color: var(--green); }
-  .danger { color: var(--red); }
-
-  canvas { width: 100% !important; height: 130px !important; margin-top: 12px; }
-
-  .alert-item {
-    padding: 8px 0; border-bottom: 1px solid var(--border);
-    font-size: .82rem; color: var(--muted);
-  }
-  .alert-item:last-child { border-bottom: none; }
-  .tag {
-    display: inline-block; padding: 1px 7px; border-radius: 4px;
-    font-size: .72rem; margin-right: 6px;
-    background: #f8514920; color: var(--red);
-  }
-  .none { color: var(--muted); font-size: .85rem; }
-
-  #health {
-    font-size: .78rem; color: var(--muted);
-    padding: 4px 24px 16px;
-  }
-
-  #login-overlay {
-    position: fixed; inset: 0; background: var(--bg);
-    display: flex; align-items: center; justify-content: center;
-    z-index: 10;
-  }
-  #login-overlay.hidden { display: none; }
-  #login-box {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 8px; padding: 28px; width: 300px;
-  }
-  #login-box h2 { font-size: 1rem; margin-bottom: 16px; }
-  #login-box input {
-    width: 100%; margin-bottom: 10px; padding: 8px 10px;
-    background: var(--bg); border: 1px solid var(--border);
-    border-radius: 6px; color: var(--text); font-size: .9rem;
-  }
-  #login-box button {
-    width: 100%; padding: 9px; border: none; border-radius: 6px;
-    background: var(--blue); color: #fff; font-size: .9rem; cursor: pointer;
-  }
-  #login-error { color: var(--red); font-size: .8rem; min-height: 1.2em; margin-bottom: 8px; }
-</style>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark light">
+<title>SecureBot</title>
+<meta name="description" content="Live tamper-aware security dashboard for SecureBot.">
+<script>
+  document.documentElement.classList.add('js');
+  try { if (sessionStorage.getItem('securebot-token')) document.documentElement.classList.add('authed'); } catch (_) {}
+</script>
+<link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
 </head>
-<body>
+<body data-state="connecting">
+<a class="skip-link" href="#overview">Skip to content</a>
 
-<div id="login-overlay">
-  <form id="login-box">
-    <h2>SecureBot Login</h2>
-    <div id="login-error"></div>
-    <input type="text" id="login-user" placeholder="Username" autocomplete="username" required>
-    <input type="password" id="login-pass" placeholder="Password" autocomplete="current-password" required>
-    <button type="submit">Sign in</button>
+<!-- SIGN IN -->
+<div id="login" class="login" role="dialog" aria-modal="true" aria-labelledby="login-title">
+  <form id="login-form" class="login-card" novalidate>
+    <svg class="logo-mark big" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5 4.5 5.6v5.7c0 4.6 3.1 8.8 7.5 10.2 4.4-1.4 7.5-5.6 7.5-10.2V5.6L12 2.5Z"/></svg>
+    <h2 id="login-title">Sign in to SecureBot</h2>
+    <p class="login-sub">Use the dashboard credentials from your <code>.env</code> file.</p>
+    <p id="login-error" class="login-error" role="alert"></p>
+    <label for="login-user">Username</label>
+    <input id="login-user" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" required>
+    <label for="login-pass">Password</label>
+    <input id="login-pass" type="password" autocomplete="current-password" required>
+    <button type="submit" id="login-submit" class="btn primary">Sign in</button>
   </form>
 </div>
 
-<header>
-  <div id="dot"></div>
-  <h1>SecureBot — Live Dashboard</h1>
-  <span id="ts"></span>
-</header>
+<!-- Announces state changes to screen readers -->
+<p id="sr-status" class="sr-only" role="status" aria-live="polite"></p>
 
-<div class="grid">
-
-  <div class="card">
-    <h2>Accelerometer (m/s²)</h2>
-    <div class="metric"><span class="label">X</span><span class="value" id="ax">—</span></div>
-    <div class="metric"><span class="label">Y</span><span class="value" id="ay">—</span></div>
-    <div class="metric"><span class="label">Z</span><span class="value" id="az">—</span></div>
-    <canvas id="accel-chart"></canvas>
-  </div>
-
-  <div class="card">
-    <h2>Gyroscope (rad/s)</h2>
-    <div class="metric"><span class="label">X</span><span class="value" id="gx">—</span></div>
-    <div class="metric"><span class="label">Y</span><span class="value" id="gy">—</span></div>
-    <div class="metric"><span class="label">Z</span><span class="value" id="gz">—</span></div>
-    <canvas id="gyro-chart"></canvas>
-  </div>
-
-  <div class="card">
-    <h2>Status</h2>
-    <div class="metric">
-      <span class="label">Tamper Flag</span>
-      <span class="value ok" id="tamper">CLEAR</span>
+<div id="app">
+  <header class="nav" id="nav">
+    <div class="nav-inner">
+      <a class="brand" href="#overview" aria-label="SecureBot, back to top">
+        <svg class="logo-mark" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5 4.5 5.6v5.7c0 4.6 3.1 8.8 7.5 10.2 4.4-1.4 7.5-5.6 7.5-10.2V5.6L12 2.5Z"/></svg>
+        <span>SecureBot</span>
+      </a>
+      <nav class="nav-links" aria-label="Sections">
+        <a href="#overview" data-section="overview">Overview</a>
+        <a href="#motion" data-section="motion">Orientation</a>
+        <a href="#signals" data-section="signals">Signals</a>
+        <a href="#alerts" data-section="alerts">Alerts</a>
+      </nav>
+      <div class="nav-end">
+        <span class="pill" id="nav-pill"><span class="pill-dot" aria-hidden="true"></span><span id="nav-pill-text">Connecting</span></span>
+        <button type="button" class="btn ghost" id="signout">Sign out</button>
+      </div>
     </div>
-    <div class="metric">
-      <span class="label">Total Alerts</span>
-      <span class="value" id="alert-count">0</span>
-    </div>
-    <div class="metric">
-      <span class="label">Frames Received</span>
-      <span class="value" id="frames">0</span>
-    </div>
-  </div>
+  </header>
 
-  <div class="card" style="grid-column: 1 / -1">
-    <h2>Tamper Alert History</h2>
-    <div id="alert-list"><span class="none">No alerts yet.</span></div>
-  </div>
+  <main>
+    <!-- OVERVIEW -->
+    <section id="overview" class="hero" aria-labelledby="hero-title">
+      <div class="hero-glow" aria-hidden="true"></div>
+      <div class="hero-inner">
+        <p class="eyebrow reveal" style="--d:0">Tamper-aware security</p>
+        <h1 id="hero-title" class="display reveal" style="--d:1"><span id="hero-title-text">Connecting.</span></h1>
+        <p id="hero-sub" class="lede reveal" style="--d:2">Reaching your SecureBot dashboard…</p>
+        <p id="hero-meta" class="meta reveal" style="--d:3">&nbsp;</p>
+        <div class="beacon reveal" style="--d:2" aria-hidden="true">
+          <span class="ring r1"></span><span class="ring r2"></span><span class="ring r3"></span>
+          <span class="core">
+            <svg viewBox="0 0 24 24"><path d="M12 2.5 4.5 5.6v5.7c0 4.6 3.1 8.8 7.5 10.2 4.4-1.4 7.5-5.6 7.5-10.2V5.6L12 2.5Z"/><path class="tick" d="m8.6 12.1 2.4 2.4 4.5-4.8"/></svg>
+          </span>
+        </div>
+      </div>
+      <a class="scroll-cue" href="#motion" aria-label="Scroll to orientation">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+      </a>
+    </section>
 
+    <!-- ORIENTATION (scroll-driven) -->
+    <section id="motion" class="scene" aria-labelledby="motion-title">
+      <div class="scene-sticky">
+        <div class="scene-copy">
+          <p class="eyebrow reveal">Orientation</p>
+          <h2 id="motion-title" class="headline reveal" style="--d:1">Feel every<br>movement.</h2>
+          <p class="lede reveal" style="--d:2">The model below tilts with the real sensor, live. Scroll to open it up.</p>
+          <dl class="readouts reveal" style="--d:3">
+            <div><dt>Roll</dt><dd><span id="roll">—</span><small>°</small></dd></div>
+            <div><dt>Pitch</dt><dd><span id="pitch">—</span><small>°</small></dd></div>
+            <div><dt>Force</dt><dd><span id="force">—</span><small>m/s²</small></dd></div>
+          </dl>
+        </div>
+        <div class="stage" role="img" aria-label="Live 3D model of the sensor, tilting to match its real orientation">
+          <div class="device" id="device">
+            <div class="tilt">
+              <div class="plate p3"></div>
+              <div class="plate p2"></div>
+              <div class="plate p1"><span class="chip">MPU-6050</span><span class="trace t1"></span><span class="trace t2"></span><span class="led"></span></div>
+            </div>
+          </div>
+          <div class="floor" aria-hidden="true"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SIGNALS -->
+    <section id="signals" class="section" aria-labelledby="signals-title">
+      <p class="eyebrow reveal">Signals</p>
+      <h2 id="signals-title" class="headline reveal" style="--d:1">Everything the<br>sensor feels.</h2>
+
+      <div class="cards">
+        <article class="card reveal" style="--d:1" aria-labelledby="accel-title">
+          <h3 id="accel-title" class="card-title">Accelerometer <span>m/s²</span></h3>
+          <div class="triple">
+            <div class="axis x"><span class="axis-name">X</span><span class="num" id="ax">—</span></div>
+            <div class="axis y"><span class="axis-name">Y</span><span class="num" id="ay">—</span></div>
+            <div class="axis z"><span class="axis-name">Z</span><span class="num" id="az">—</span></div>
+          </div>
+          <canvas id="accel-chart" class="chart" role="img" aria-label="Line chart of the last 50 accelerometer readings on three axes"></canvas>
+        </article>
+
+        <article class="card reveal" style="--d:2" aria-labelledby="gyro-title">
+          <h3 id="gyro-title" class="card-title">Gyroscope <span>rad/s</span></h3>
+          <div class="triple">
+            <div class="axis x"><span class="axis-name">X</span><span class="num" id="gx">—</span></div>
+            <div class="axis y"><span class="axis-name">Y</span><span class="num" id="gy">—</span></div>
+            <div class="axis z"><span class="axis-name">Z</span><span class="num" id="gz">—</span></div>
+          </div>
+          <canvas id="gyro-chart" class="chart" role="img" aria-label="Line chart of the last 50 gyroscope readings on three axes"></canvas>
+        </article>
+      </div>
+
+      <dl class="stats">
+        <div class="reveal" style="--d:1"><dt>Readings received</dt><dd id="frames">0</dd></div>
+        <div class="reveal" style="--d:2"><dt id="alert-count-label">Tamper alerts</dt><dd id="alert-count">0</dd></div>
+        <div class="reveal" style="--d:3"><dt>Last alert</dt><dd id="last-alert" class="small">None</dd></div>
+        <div class="reveal" style="--d:4"><dt>Sensor signal</dt><dd id="signal" class="small">Waiting</dd></div>
+      </dl>
+    </section>
+
+    <!-- ALERTS -->
+    <section id="alerts" class="section" aria-labelledby="alerts-title">
+      <p class="eyebrow reveal">Alerts</p>
+      <h2 id="alerts-title" class="headline reveal" style="--d:1">Tamper history.</h2>
+      <p class="lede reveal" style="--d:2">The server keeps the 20 most recent alerts in memory. They reset when the dashboard restarts.</p>
+      <p id="alerts-empty" class="empty reveal" style="--d:3">No alerts yet. A quiet door is a good door.</p>
+      <ol id="alert-list" class="timeline"></ol>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p><strong>Privacy.</strong> This dashboard stores one sign-in token in your browser&rsquo;s session storage, which is cleared when you close the tab. It sets no cookies and loads no analytics, third-party scripts or web fonts. Sensor readings stay on your own network.</p>
+    <p class="fine">SecureBot &middot; MIT licence &middot; fonts are your device&rsquo;s own system fonts.</p>
+  </footer>
 </div>
 
-<div id="health">Connecting to broker…</div>
-
-<script>
-const fmt = v => typeof v === 'number' ? v.toFixed(3) : '—';
-let frames = 0;
-let token = sessionStorage.getItem('securebot-token') || '';
-
-function showLogin() {
-  token = '';
-  sessionStorage.removeItem('securebot-token');
-  document.getElementById('login-overlay').classList.remove('hidden');
-}
-
-async function authFetch(url) {
-  const r = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
-  if (r.status === 401) {
-    showLogin();
-    throw new Error('unauthorized');
-  }
-  return r.json();
-}
-
-document.getElementById('login-box').addEventListener('submit', async e => {
-  e.preventDefault();
-  const err = document.getElementById('login-error');
-  err.textContent = '';
-  const r = await fetch('/api/login', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      username: document.getElementById('login-user').value,
-      password: document.getElementById('login-pass').value,
-    }),
-  });
-  if (!r.ok) {
-    err.textContent = 'Invalid username or password.';
-    return;
-  }
-  token = (await r.json()).token;
-  sessionStorage.setItem('securebot-token', token);
-  document.getElementById('login-overlay').classList.add('hidden');
-  fetchTelemetry();
-  fetchAlerts();
-});
-
-if (token) document.getElementById('login-overlay').classList.add('hidden');
-
-function makeChart(id, colors) {
-  const canvas = document.getElementById(id);
-  const ctx    = canvas.getContext('2d');
-  canvas.width  = canvas.parentElement.clientWidth - 40;
-  canvas.height = 130;
-  const MAX  = 50;
-  const bufs = colors.map(() => []);
-
-  return {
-    push(vals) {
-      vals.forEach((v, i) => {
-        bufs[i].push(v);
-        if (bufs[i].length > MAX) bufs[i].shift();
-      });
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      const W = canvas.width, H = canvas.height;
-      const all = bufs.flat();
-      const lo  = Math.min(...all, -1), hi = Math.max(...all, 1);
-      const toY = v => H - ((v - lo) / (hi - lo)) * H;
-
-      // Zero line
-      ctx.strokeStyle = '#30363d'; ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.moveTo(0, toY(0)); ctx.lineTo(W, toY(0)); ctx.stroke();
-
-      bufs.forEach((pts, i) => {
-        if (pts.length < 2) return;
-        ctx.strokeStyle = colors[i]; ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        pts.forEach((v, x) => {
-          const px = (x / (MAX - 1)) * W;
-          x === 0 ? ctx.moveTo(px, toY(v)) : ctx.lineTo(px, toY(v));
-        });
-        ctx.stroke();
-      });
-    }
-  };
-}
-
-const accelChart = makeChart('accel-chart', ['#f85149','#3fb950','#58a6ff']);
-const gyroChart  = makeChart('gyro-chart',  ['#f85149','#3fb950','#58a6ff']);
-
-async function fetchTelemetry() {
-  if (!token) return;
-  try {
-    const d = await authFetch('/api/telemetry');
-    if (!d.ts) return;
-
-    document.getElementById('dot').classList.add('live');
-    document.getElementById('ts').textContent =
-      new Date(d.ts * 1000).toLocaleTimeString();
-
-    document.getElementById('ax').textContent = fmt(d.ax);
-    document.getElementById('ay').textContent = fmt(d.ay);
-    document.getElementById('az').textContent = fmt(d.az);
-    document.getElementById('gx').textContent = fmt(d.gx);
-    document.getElementById('gy').textContent = fmt(d.gy);
-    document.getElementById('gz').textContent = fmt(d.gz);
-
-    const tf = document.getElementById('tamper');
-    if (d.tamper) {
-      tf.textContent = 'TAMPER'; tf.className = 'value danger';
-    } else {
-      tf.textContent = 'CLEAR'; tf.className = 'value ok';
-    }
-
-    accelChart.push([d.ax ?? 0, d.ay ?? 0, d.az ?? 0]);
-    gyroChart.push([d.gx ?? 0, d.gy ?? 0, d.gz ?? 0]);
-    frames++;
-    document.getElementById('frames').textContent = frames;
-
-  } catch (_) {
-    document.getElementById('dot').classList.remove('live');
-  }
-}
-
-async function fetchAlerts() {
-  if (!token) return;
-  let a;
-  try {
-    a = await authFetch('/api/alerts');
-  } catch (_) {
-    return;
-  }
-  document.getElementById('alert-count').textContent = a.length;
-
-  const el = document.getElementById('alert-list');
-  if (!a.length) {
-    el.innerHTML = '<span class="none">No alerts yet.</span>';
-    return;
-  }
-  el.innerHTML = a.map(x => {
-    const t = new Date(x.ts * 1000).toLocaleTimeString();
-    return `<div class="alert-item">
-      <span class="tag">TAMPER</span>${t}
-      &nbsp; ax:${fmt(x.ax)} &nbsp; ay:${fmt(x.ay)} &nbsp; az:${fmt(x.az)}
-    </div>`;
-  }).join('');
-}
-
-setInterval(fetchTelemetry, 300);
-setInterval(fetchAlerts, 2000);
-setInterval(() => {
-  document.getElementById('health').textContent =
-    `Broker: Mosquitto on localhost:1883  ·  Frames received: ${frames}`;
-}, 3000);
-
-fetchTelemetry();
-fetchAlerts();
-</script>
+<script src="{{ url_for('static', filename='dashboard.js') }}" defer></script>
 </body>
 </html>
