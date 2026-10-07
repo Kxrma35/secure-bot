@@ -123,7 +123,10 @@ secure-bot/
 ├── requirements.txt      # Python dependencies
 ├── .env.example          # Template for required environment variables
 ├── templates/
-│   └── dashboard.html    # Live dashboard frontend
+│   └── dashboard.html    # Dashboard page markup
+├── static/
+│   ├── dashboard.css     # Dashboard styles (served by Flask at /static/)
+│   └── dashboard.js      # Live polling, charts and animation
 └── README.md
 ```
 
@@ -171,6 +174,7 @@ cd ~
 git clone https://github.com/Kxrma35/secure-bot.git securebot-files
 cp ~/securebot-files/*.py ~/
 cp -r ~/securebot-files/templates ~/
+cp -r ~/securebot-files/static ~/      # dashboard CSS and JS; without it the page loads unstyled
 ```
 
 ### 4. Configure secrets

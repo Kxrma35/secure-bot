@@ -7,20 +7,30 @@
 <title>SecureBot</title>
 <meta name="description" content="Live tamper-aware security dashboard for SecureBot.">
 <script>
-  document.documentElement.classList.add('js');
-  try { if (sessionStorage.getItem('securebot-token')) document.documentElement.classList.add('authed'); } catch (_) {}
+  // Runs before first paint so there is no flash of the wrong theme or the sign-in screen.
+  (function () {
+    var r = document.documentElement;
+    r.classList.add('js');
+    try {
+      var t = localStorage.getItem('securebot-theme');
+      if (t === 'light' || t === 'dark') r.setAttribute('data-theme', t);
+      if (sessionStorage.getItem('securebot-token')) r.classList.add('authed');
+    } catch (_) {}
+  })();
 </script>
 <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
 </head>
 <body data-state="connecting">
-<a class="skip-link" href="#overview">Skip to content</a>
+<a class="skip-link" href="#main">Skip to the dashboard</a>
 
 <!-- SIGN IN -->
 <div id="login" class="login" role="dialog" aria-modal="true" aria-labelledby="login-title">
-  <form id="login-form" class="login-card" novalidate>
-    <svg class="logo-mark big" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5 4.5 5.6v5.7c0 4.6 3.1 8.8 7.5 10.2 4.4-1.4 7.5-5.6 7.5-10.2V5.6L12 2.5Z"/></svg>
-    <h2 id="login-title">Sign in to SecureBot</h2>
-    <p class="login-sub">Use the dashboard credentials from your <code>.env</code> file.</p>
+  <form id="login-form" class="login-card">
+    <span class="logo-tile" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path d="M12 2.5 4.5 5.6v5.7c0 4.6 3.1 8.8 7.5 10.2 4.4-1.4 7.5-5.6 7.5-10.2V5.6L12 2.5Z"/></svg>
+    </span>
+    <h2 id="login-title">SecureBot</h2>
+    <p class="login-sub">Sign in with the dashboard credentials from your <code>.env</code> file.</p>
     <p id="login-error" class="login-error" role="alert"></p>
     <label for="login-user">Username</label>
     <input id="login-user" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" required>
@@ -34,122 +44,121 @@
 <p id="sr-status" class="sr-only" role="status" aria-live="polite"></p>
 
 <div id="app">
-  <header class="nav" id="nav">
-    <div class="nav-inner">
-      <a class="brand" href="#overview" aria-label="SecureBot, back to top">
-        <svg class="logo-mark" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5 4.5 5.6v5.7c0 4.6 3.1 8.8 7.5 10.2 4.4-1.4 7.5-5.6 7.5-10.2V5.6L12 2.5Z"/></svg>
-        <span>SecureBot</span>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="#main" aria-label="SecureBot dashboard">
+        <span class="logo-tile sm" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2.5 4.5 5.6v5.7c0 4.6 3.1 8.8 7.5 10.2 4.4-1.4 7.5-5.6 7.5-10.2V5.6L12 2.5Z"/></svg></span>
+        <span class="brand-name">SecureBot</span>
       </a>
-      <nav class="nav-links" aria-label="Sections">
-        <a href="#overview" data-section="overview">Overview</a>
-        <a href="#motion" data-section="motion">Orientation</a>
-        <a href="#signals" data-section="signals">Signals</a>
-        <a href="#alerts" data-section="alerts">Alerts</a>
-      </nav>
-      <div class="nav-end">
-        <span class="pill" id="nav-pill"><span class="pill-dot" aria-hidden="true"></span><span id="nav-pill-text">Connecting</span></span>
-        <button type="button" class="btn ghost" id="signout">Sign out</button>
-      </div>
+      <span class="pill" id="nav-pill">
+        <svg class="pill-icon" viewBox="0 0 24 24" aria-hidden="true"><path id="pill-icon-path" d="m5 12.5 4.5 4.5L19 7.5"/></svg>
+        <span id="nav-pill-text">Connecting</span>
+      </span>
+      <span class="spacer"></span>
+      <button type="button" class="icon-btn" id="theme-btn" aria-label="Theme: follow system. Activate to change." title="Theme">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg>
+      </button>
+      <button type="button" class="btn ghost" id="signout">Sign out</button>
     </div>
   </header>
 
-  <main>
-    <!-- OVERVIEW -->
-    <section id="overview" class="hero" aria-labelledby="hero-title">
-      <div class="hero-glow" aria-hidden="true"></div>
-      <div class="hero-inner">
-        <p class="eyebrow reveal" style="--d:0">Tamper-aware security</p>
-        <h1 id="hero-title" class="display reveal" style="--d:1"><span id="hero-title-text">Connecting.</span></h1>
-        <p id="hero-sub" class="lede reveal" style="--d:2">Reaching your SecureBot dashboard…</p>
-        <p id="hero-meta" class="meta reveal" style="--d:3">&nbsp;</p>
-        <div class="beacon reveal" style="--d:2" aria-hidden="true">
-          <span class="ring r1"></span><span class="ring r2"></span><span class="ring r3"></span>
-          <span class="core">
-            <svg viewBox="0 0 24 24"><path d="M12 2.5 4.5 5.6v5.7c0 4.6 3.1 8.8 7.5 10.2 4.4-1.4 7.5-5.6 7.5-10.2V5.6L12 2.5Z"/><path class="tick" d="m8.6 12.1 2.4 2.4 4.5-4.8"/></svg>
-          </span>
-        </div>
+  <main id="main" class="page">
+    <!-- One row of controls, scoping everything below it -->
+    <section class="toolbar" aria-label="View controls">
+      <button type="button" class="chip live" id="live-btn" aria-pressed="true">
+        <span class="chip-dot" aria-hidden="true"></span><span id="live-label">Live</span>
+      </button>
+      <div class="seg" role="group" aria-label="Values shown">
+        <button type="button" class="seg-btn" id="mode-raw" aria-pressed="true">Raw</button>
+        <button type="button" class="seg-btn" id="mode-delta" aria-pressed="false">Change from rest</button>
       </div>
-      <a class="scroll-cue" href="#motion" aria-label="Scroll to orientation">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
-      </a>
+      <span class="spacer"></span>
+      <span class="asof" id="asof">No readings yet</span>
     </section>
 
-    <!-- ORIENTATION (scroll-driven) -->
-    <section id="motion" class="scene" aria-labelledby="motion-title">
-      <div class="scene-sticky">
-        <div class="scene-copy">
-          <p class="eyebrow reveal">Orientation</p>
-          <h2 id="motion-title" class="headline reveal" style="--d:1">Feel every<br>movement.</h2>
-          <p class="lede reveal" style="--d:2">The model below tilts with the real sensor, live. Scroll to open it up.</p>
-          <dl class="readouts reveal" style="--d:3">
-            <div><dt>Roll</dt><dd><span id="roll">—</span><small>°</small></dd></div>
-            <div><dt>Pitch</dt><dd><span id="pitch">—</span><small>°</small></dd></div>
-            <div><dt>Force</dt><dd><span id="force">—</span><small>m/s²</small></dd></div>
-          </dl>
-        </div>
-        <div class="stage" role="img" aria-label="Live 3D model of the sensor, tilting to match its real orientation">
-          <div class="device" id="device">
-            <div class="tilt">
-              <div class="plate p3"></div>
-              <div class="plate p2"></div>
-              <div class="plate p1"><span class="chip">MPU-6050</span><span class="trace t1"></span><span class="trace t2"></span><span class="led"></span></div>
+    <div class="layout">
+      <div class="main-col">
+        <!-- STATUS -->
+        <article class="tile status" id="status-tile" style="--i:0" aria-labelledby="status-label">
+          <div class="status-icon" aria-hidden="true">
+            <span class="ring"></span><span class="ring r2"></span>
+            <span class="status-core"><svg viewBox="0 0 24 24"><path id="status-icon-path" d="m5 12.5 4.5 4.5L19 7.5"/></svg></span>
+          </div>
+          <div class="status-text">
+            <h2 id="status-label" class="tile-label">Status</h2>
+            <p id="hero-title" class="status-title"><span id="hero-title-text">Connecting</span></p>
+            <p id="hero-sub" class="status-sub">Reaching your SecureBot dashboard…</p>
+          </div>
+        </article>
+
+        <!-- ORIENTATION -->
+        <article class="tile orient" style="--i:1" aria-labelledby="orient-label">
+          <div class="orient-copy">
+            <h2 id="orient-label" class="tile-label">Force</h2>
+            <p class="hero-figure"><span id="force">—</span><small>m/s²</small></p>
+            <dl class="mini">
+              <div><dt>Roll</dt><dd><span id="roll">—</span><small>°</small></dd></div>
+              <div><dt>Pitch</dt><dd><span id="pitch">—</span><small>°</small></dd></div>
+            </dl>
+          </div>
+          <div class="stage" role="img" aria-label="Live 3D model of the sensor, tilting to match its real orientation">
+            <div class="device" id="device">
+              <div class="tilt">
+                <div class="plate p3"></div>
+                <div class="plate p2"></div>
+                <div class="plate p1"><span class="chip-label">MPU-6050</span><span class="led"></span></div>
+              </div>
             </div>
           </div>
-          <div class="floor" aria-hidden="true"></div>
-        </div>
-      </div>
-    </section>
-
-    <!-- SIGNALS -->
-    <section id="signals" class="section" aria-labelledby="signals-title">
-      <p class="eyebrow reveal">Signals</p>
-      <h2 id="signals-title" class="headline reveal" style="--d:1">Everything the<br>sensor feels.</h2>
-
-      <div class="cards">
-        <article class="card reveal" style="--d:1" aria-labelledby="accel-title">
-          <h3 id="accel-title" class="card-title">Accelerometer <span>m/s²</span></h3>
-          <div class="triple">
-            <div class="axis x"><span class="axis-name">X</span><span class="num" id="ax">—</span></div>
-            <div class="axis y"><span class="axis-name">Y</span><span class="num" id="ay">—</span></div>
-            <div class="axis z"><span class="axis-name">Z</span><span class="num" id="az">—</span></div>
-          </div>
-          <canvas id="accel-chart" class="chart" role="img" aria-label="Line chart of the last 50 accelerometer readings on three axes"></canvas>
         </article>
 
-        <article class="card reveal" style="--d:2" aria-labelledby="gyro-title">
-          <h3 id="gyro-title" class="card-title">Gyroscope <span>rad/s</span></h3>
-          <div class="triple">
-            <div class="axis x"><span class="axis-name">X</span><span class="num" id="gx">—</span></div>
-            <div class="axis y"><span class="axis-name">Y</span><span class="num" id="gy">—</span></div>
-            <div class="axis z"><span class="axis-name">Z</span><span class="num" id="gz">—</span></div>
-          </div>
-          <canvas id="gyro-chart" class="chart" role="img" aria-label="Line chart of the last 50 gyroscope readings on three axes"></canvas>
+        <!-- ACCELEROMETER -->
+        <article class="tile chart-tile" style="--i:2" aria-labelledby="accel-title">
+          <header class="chart-head">
+            <h2 id="accel-title" class="tile-label">Accelerometer <span class="unit">m/s²</span></h2>
+            <ul class="legend" id="accel-legend" aria-label="Series"></ul>
+            <button type="button" class="chip table-btn" data-chart="accel" aria-pressed="false">Table</button>
+          </header>
+          <div class="chart-body" id="accel-body"></div>
+        </article>
+
+        <!-- GYROSCOPE -->
+        <article class="tile chart-tile" style="--i:3" aria-labelledby="gyro-title">
+          <header class="chart-head">
+            <h2 id="gyro-title" class="tile-label">Gyroscope <span class="unit">rad/s</span></h2>
+            <ul class="legend" id="gyro-legend" aria-label="Series"></ul>
+            <button type="button" class="chip table-btn" data-chart="gyro" aria-pressed="false">Table</button>
+          </header>
+          <div class="chart-body" id="gyro-body"></div>
         </article>
       </div>
 
-      <dl class="stats">
-        <div class="reveal" style="--d:1"><dt>Readings received</dt><dd id="frames">0</dd></div>
-        <div class="reveal" style="--d:2"><dt id="alert-count-label">Tamper alerts</dt><dd id="alert-count">0</dd></div>
-        <div class="reveal" style="--d:3"><dt>Last alert</dt><dd id="last-alert" class="small">None</dd></div>
-        <div class="reveal" style="--d:4"><dt>Sensor signal</dt><dd id="signal" class="small">Waiting</dd></div>
-      </dl>
-    </section>
+      <aside class="side-col" aria-label="Summary and alerts">
+        <section class="kpis" aria-label="Key figures">
+          <article class="tile kpi" style="--i:4"><h2 class="tile-label">Readings seen</h2><p class="kpi-value" id="frames">0</p></article>
+          <article class="tile kpi" style="--i:5"><h2 class="tile-label" id="alert-count-label">Tamper alerts</h2><p class="kpi-value" id="alert-count">0</p></article>
+          <article class="tile kpi" style="--i:6"><h2 class="tile-label">Last alert</h2><p class="kpi-value small" id="last-alert">None</p></article>
+          <article class="tile kpi" style="--i:7"><h2 class="tile-label">Sensor signal</h2><p class="kpi-value small" id="signal">Waiting</p></article>
+        </section>
 
-    <!-- ALERTS -->
-    <section id="alerts" class="section" aria-labelledby="alerts-title">
-      <p class="eyebrow reveal">Alerts</p>
-      <h2 id="alerts-title" class="headline reveal" style="--d:1">Tamper history.</h2>
-      <p class="lede reveal" style="--d:2">The server keeps the 20 most recent alerts in memory. They reset when the dashboard restarts.</p>
-      <p id="alerts-empty" class="empty reveal" style="--d:3">No alerts yet. A quiet door is a good door.</p>
-      <ol id="alert-list" class="timeline"></ol>
-    </section>
+        <article class="tile feed" style="--i:8" aria-labelledby="alerts-title">
+          <h2 id="alerts-title" class="tile-label">Tamper alerts</h2>
+          <p id="alerts-warn" class="warn" role="status" hidden>Could not refresh alerts. The list below may be out of date.</p>
+          <p id="alerts-empty" class="empty" hidden>No alerts yet. A quiet door is a good door.</p>
+          <ol id="alert-list" class="timeline"></ol>
+          <p class="fine">The server keeps the 20 most recent alerts in memory; they reset when it restarts.</p>
+        </article>
+      </aside>
+    </div>
+
+    <footer class="footer">
+      <p><strong>Privacy.</strong> This dashboard stores one sign-in token in your browser&rsquo;s session storage (cleared when you close the tab) and your theme choice in local storage. It sets no cookies and loads no analytics, third-party scripts or web fonts. Sensor readings stay on your own network.</p>
+      <p>SecureBot &middot; MIT licence &middot; fonts are your device&rsquo;s own system fonts.</p>
+    </footer>
   </main>
-
-  <footer class="footer">
-    <p><strong>Privacy.</strong> This dashboard stores one sign-in token in your browser&rsquo;s session storage, which is cleared when you close the tab. It sets no cookies and loads no analytics, third-party scripts or web fonts. Sensor readings stay on your own network.</p>
-    <p class="fine">SecureBot &middot; MIT licence &middot; fonts are your device&rsquo;s own system fonts.</p>
-  </footer>
 </div>
+
+<div id="tip" class="tip" role="presentation" hidden></div>
 
 <script src="{{ url_for('static', filename='dashboard.js') }}" defer></script>
 </body>
